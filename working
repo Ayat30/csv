@@ -1,0 +1,59 @@
+import csv
+import random
+from urllib.request import urlopen
+import requests
+from contextlib import closing
+from sklearn.linear_model import Perceptron
+model = Perceptron()
+
+url = "https://raw.githubusercontent.com/Ayat30/csv/master/haberman.csv"
+with closing(requests.get(url, stream=True)) as r:
+    f = (line.decode('utf-8') for line in r.iter_lines())
+    reader = csv.reader(f, delimiter=',', quotechar='"')
+    next(reader, None)
+
+# response = urlopen("https://raw.githubusercontent.com/Ayat30/csv/master/haberman.csv")
+#with urlopen("https://raw.githubusercontent.com/Ayat30/csv/master/haberman.csv") as x:
+#    f = x.read().decode(x.headers.get_content_charset())
+#    reader = csv.reader(f)
+    #next(reader)
+
+    data = []
+    for row in reader:
+        data.append({
+            "age": [int(cell) for cell in row[:3]],
+            "label": "a3" if row[3] == "1" else "die"
+        })
+
+# Separate data into training and testing groups
+holdout = int(0.30 * len(data))
+random.shuffle(data)
+testing = data[:holdout]
+training = data[holdout:]
+
+# Train model on training set
+x_training = [row["age"] for row in training]
+y_training = [row["label"] for row in training]
+model.fit(x_training, y_training)
+
+# Make predictions on the testing set
+X_testing = [row["age"] for row in testing]
+y_testing = [row["label"] for row in testing]
+predictions = model.predict(X_testing)
+
+# Compute how well we performed
+correct = 0
+incorrect = 0
+total = 0
+for actual, predicted in zip(y_testing, predictions):
+    total += 1
+    if actual == predicted:
+        correct += 1
+    else:
+        incorrect += 1
+
+# Print results
+print(f"Results for model {type(model).__name__}")
+print(f"Correct: {correct}")
+print(f"Incorrect: {incorrect}")
+print(f"Accuracy: {100 * correct / total:.2f}%")
